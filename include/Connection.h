@@ -1,0 +1,17 @@
+#pragma once
+#include <sys/socket.h> // for sockets
+#include <netinet/in.h> // for sockaddr_in
+#include <arpa/inet.h> // for inet_pton
+#include <unistd.h> // for closing socket
+#include <iostream>
+
+#include "Redis.h"
+
+class Connection {
+    public:
+        void start_tcp_domain();
+        std::string read_client_data(int clinet_fd);
+        Connection();
+    private:
+        struct sockaddr_in IPv4Addresses{};
+};
