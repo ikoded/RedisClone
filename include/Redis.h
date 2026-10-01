@@ -7,6 +7,7 @@
 /*
 
 Redis values constants
+(will be implemented in future, for now string only)
 
 */
 using redis_string = std::string;
@@ -18,13 +19,13 @@ using redis_value = std::variant<redis_string,redis_list,redis_map>;
 class Redis{
     public:
         // getters & setters
-        redis_value get_redis_value(std::string key);
-        void set_redis_value(std::string key, redis_value value);
+        std::string get_redis_value(std::string key);
+        void set_redis_value(std::string key, std::string value);
 
         static std::vector<std::string> parse_query(std::string query);
         void process_query(std::vector<std::string> query_vector);
 
         Redis(); // Initializes dict from storage
     private:
-        std::unordered_map<std::string,redis_value> redis_dict;
+        std::unordered_map<std::string,std::unordered_map<std::string,std::string>> redis_dict;
 };

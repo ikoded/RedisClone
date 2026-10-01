@@ -24,3 +24,6 @@ GET request
 
 4. Your C++ Server sends back a valid HTTP Response:
    "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: [size]\r\n\r\n[Your Value Here]"
+
+I want to make it a complex redis clone that works similar to the true Redis.
+For this to work, that means I need an unordered map of a nested unordered map so if say `SET user:100 username "alice"` it will set a key of `user:100` with an unordered_map of possible fields you can add (any as you please)
