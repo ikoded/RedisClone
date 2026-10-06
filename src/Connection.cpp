@@ -47,13 +47,12 @@ void Connection::start_tcp_domain(){
 
         std::vector<std::string> parsed = Redis::parse_query(query);
         if(parsed.size()==0){
-            std::cerr << "Query " << query << " failed, exiting." << std::endl;
+            std::cerr << "Query " << query << " incorrect, exiting." << std::endl;
             close(client_fd);
             break;
         }
-        for(std::string word : parsed){
-            std::cout << "- " << word << std::endl;
-        }
+        
+        redis.process_query(parsed);
     }
 
     close(server_fd);

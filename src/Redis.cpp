@@ -1,27 +1,46 @@
 #include "../include/Redis.h"
 
-// needs fixed
-// std::string Redis::get_redis_value(std::string key){
-//     if(redis_dict.count(key)){
-//         auto& redis_type = redis_dict[key];
+std::string Redis::get_redis_value(std::string key, std::string field){
+    auto entry = redis_dict.find(key);
+    if(entry != redis_dict.end()){
+        auto field_entry = entry->second.find(field);
+        if(field_entry != entry->second.end()){
+            return field_entry->second;
+        }else{
+            std::cerr << "Could not find " << key << " field " << field << std::endl;
+        }
+    }else{
+        std::cerr << "Could not find " << key << std::endl;
+    }
+    return "";
+    
+    // Code for when using redis value
+    // if(redis_dict.count(key)){
+    //     auto& redis_type = redis_dict[key];
 
-//         if(std::holds_alternative<redis_string>(redis_type)){ // check if string
-//             auto& str = std::get<redis_string>(redis_type);
-//             return str;
-//         }else if(std::holds_alternative<redis_list>(redis_type)){ // check if list
-//             auto& list = std::get<redis_list>(redis_type);
-//             return list;
-//         }else if(std::holds_alternative<redis_map>(redis_type)){ // check if map
-//             auto& map = std::get<redis_map>(redis_type);
-//             return map;
-//         }
-//     }
-//     return ""; // failure, value cannot be ""
-// }
+    //     if(std::holds_alternative<redis_string>(redis_type)){ // check if string
+    //         auto& str = std::get<redis_string>(redis_type);
+    //         return str;
+    //     }else if(std::holds_alternative<redis_list>(redis_type)){ // check if list
+    //         auto& list = std::get<redis_list>(redis_type);
+    //         return list;
+    //     }else if(std::holds_alternative<redis_map>(redis_type)){ // check if map
+    //         auto& map = std::get<redis_map>(redis_type);
+    //         return map;
+    //     }
+    // }
+    // return ""; // failure, value cannot be ""
+}
 
-// void Redis::set_redis_value(std::string key, std::string value){
-//     redis_dict[key] = value;
-// }
+void Redis::set_redis_value(std::string key, std::string field, std::string value){
+    std::unordered_map<std::string,std::string> dict = this->redis_dict[key];
+    
+    // set dict in  to field/value
+    dict[field] = value;
+    this->redis_dict[key] = dict;
+
+    std::cout << "Set " << key << " field " << field << " to " << value << std::endl;
+}
 
 /*
 
@@ -46,6 +65,10 @@ std::vector<std::string> Redis::parse_query(std::string query){
         if(x==std::string::npos) return 1;
         return 0;
     };
+
+    // pop the trailing newline (for js page this needs removed)
+    query.pop_back();
+
     // Grab set, get, delete
     if(query.substr(0,3)=="GET"){
         words_parsed.push_back("GET");
@@ -108,14 +131,64 @@ void Redis::process_query(std::vector<std::string> query_vector){
 
     if(keyword=="GET"){
         // will send to browser in JSON response
+        // grab key and field (backwards in vector)
+        std::string field = query_vector.back(); query_vector.pop_back();
+
+        std::string id = query_vector.back(); query_vector.pop_back();
+        std::string key = query_vector.back() + ":" + id; query_vector.pop_back();
+
+        // get keys unordered map
+        std::string return_value = this->get_redis_value(key,field);
+        if(return_value!=""){
+            std::cout << "Found: " << key << "(" << field << ") = " << return_value << std::endl; 
+        }
+
     }else if(keyword=="SET"){
-        
+        // need the key, field, and value (backwards)
+        std::string value = query_vector.back(); query_vector.pop_back();
+
+        std::string field = query_vector.back(); query_vector.pop_back();
+
+        std::string id = query_vector.back(); query_vector.pop_back();
+        std::string key = query_vector.back() + ":" + id; query_vector.pop_back();
+
+        // set key/field/value
+        this->set_redis_value(key,field,value);
+
+        // debug
+        this->print_dict();
     }else if(keyword=="DELETE"){
 
     }else{
         // shouldn't ever get here
         return;
     }
+}
+
+/*
+
+Meant for debugging, prints full map
+
+*/
+void Redis::print_dict(){
+    int outercount = 1;
+    std::unordered_map<std::string,std::unordered_map<std::string,std::string>> full_dict = this->redis_dict;
+    std::cout << "{" << std::endl;
+    for(const auto& [key,value] : full_dict){
+
+        std::cout << "\t" << key << ": {" << std::endl;
+        for(const auto& [field,fvalue] : value){
+            std::cout << "\t\t" << field << ": " << fvalue << std::endl;
+        }
+        std::cout << "\t}";
+        if(full_dict.size()!=1 && outercount!=full_dict.size()){
+            std::cout << ",\n";
+        }
+        std::cout << std::endl;
+
+        outercount++;
+    }
+    std::cout << "}" << std::endl;
 }
 
 Redis::Redis(){

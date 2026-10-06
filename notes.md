@@ -3,6 +3,7 @@ RESP is Redis Serialization Protocol
 Testing tool example: (Netcat) `echo "GET user:100" | nc -N localhost 8080`
 
 Can also test automated using python with the socket library and create c++ tests to learn testing
+Add GoogleTest Primer for real production grade testing
 
 Will need a persistent file whenever server shuts down to save the data and load in whenever server starts
 
