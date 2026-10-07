@@ -53,6 +53,9 @@ void Connection::start_tcp_domain(){
         }
         
         redis.process_query(parsed);
+
+        // debug
+        redis.print_dict();
     }
 
     close(server_fd);

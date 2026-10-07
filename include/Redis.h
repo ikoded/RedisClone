@@ -23,6 +23,9 @@ class Redis{
         std::string get_redis_value(std::string key, std::string field);
         void set_redis_value(std::string key, std::string field, std::string value);
 
+        // helper functions for redis dict functions
+        void delete_user_or_field(std::string key, std::string field);
+
         static std::vector<std::string> parse_query(std::string query);
         void process_query(std::vector<std::string> query_vector);
 

@@ -1,5 +1,6 @@
 #include "../include/Redis.h"
 
+// Getters and Setters
 std::string Redis::get_redis_value(std::string key, std::string field){
     auto entry = redis_dict.find(key);
     if(entry != redis_dict.end()){
@@ -33,13 +34,35 @@ std::string Redis::get_redis_value(std::string key, std::string field){
 }
 
 void Redis::set_redis_value(std::string key, std::string field, std::string value){
-    std::unordered_map<std::string,std::string> dict = this->redis_dict[key];
+    std::unordered_map<std::string,std::string> dict = redis_dict[key];
     
     // set dict in  to field/value
     dict[field] = value;
-    this->redis_dict[key] = dict;
+    redis_dict[key] = dict;
 
     std::cout << "Set " << key << " field " << field << " to " << value << std::endl;
+}
+
+// Helper functions for Redis operations
+
+void Redis::delete_user_or_field(std::string key, std::string field = ""){
+    auto entry = redis_dict.find(key);
+    if(entry != redis_dict.end()){
+        if(field==""){
+            redis_dict.erase(key);
+            std::cout << "Deleted key " << key << std::endl;
+        }else{
+            auto field_entry = entry->second.find(field);
+            if(field_entry != entry->second.end()){
+                redis_dict[key].erase(field);
+                std::cout << "Deleted field (" << field << ") from key (" << key << ")" << std::endl;
+            }else{
+                std::cerr << "Could not find key (" << key << ") field (" << field << ")" << std::endl;
+            }
+        }
+    }else{
+        std::cerr << "Could not find key " << key << std::endl;
+    }
 }
 
 /*
@@ -138,7 +161,7 @@ void Redis::process_query(std::vector<std::string> query_vector){
         std::string key = query_vector.back() + ":" + id; query_vector.pop_back();
 
         // get keys unordered map
-        std::string return_value = this->get_redis_value(key,field);
+        std::string return_value = get_redis_value(key,field);
         if(return_value!=""){
             std::cout << "Found: " << key << "(" << field << ") = " << return_value << std::endl; 
         }
@@ -153,15 +176,20 @@ void Redis::process_query(std::vector<std::string> query_vector){
         std::string key = query_vector.back() + ":" + id; query_vector.pop_back();
 
         // set key/field/value
-        this->set_redis_value(key,field,value);
-
-        // debug
-        this->print_dict();
+        set_redis_value(key,field,value);
     }else if(keyword=="DELETE"){
-
-    }else{
-        // shouldn't ever get here
-        return;
+        if(query_vector.size()==3){ // delete the user
+            std::string id = query_vector.back(); query_vector.pop_back();
+            std::string key = query_vector.back() + ":" + id;
+            // delete just the user
+            delete_user_or_field(key);
+        }else if(query_vector.size()==4){ // delete users field
+            std::string field = query_vector.back(); query_vector.pop_back();
+            std::string id = query_vector.back(); query_vector.pop_back();
+            std::string key = query_vector.back() + ":" + id;
+            // delete users field
+            delete_user_or_field(key,field);
+        }
     }
 }
 
@@ -172,7 +200,7 @@ Meant for debugging, prints full map
 */
 void Redis::print_dict(){
     int outercount = 1;
-    std::unordered_map<std::string,std::unordered_map<std::string,std::string>> full_dict = this->redis_dict;
+    std::unordered_map<std::string,std::unordered_map<std::string,std::string>> full_dict = redis_dict;
     std::cout << "{" << std::endl;
     for(const auto& [key,value] : full_dict){
 
