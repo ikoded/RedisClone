@@ -1,6 +1,10 @@
 #include "../include/Redis.h"
 
-// Getters and Setters
+/*
+
+Helper functions for Redis operations
+
+*/
 std::string Redis::get_redis_value(std::string key, std::string field){
     auto entry = redis_dict.find(key);
     if(entry != redis_dict.end()){
@@ -42,8 +46,6 @@ void Redis::set_redis_value(std::string key, std::string field, std::string valu
 
     std::cout << "Set " << key << " field " << field << " to " << value << std::endl;
 }
-
-// Helper functions for Redis operations
 
 void Redis::delete_user_or_field(std::string key, std::string field = ""){
     auto entry = redis_dict.find(key);
@@ -149,6 +151,11 @@ std::vector<std::string> Redis::parse_query(std::string query){
     return words_parsed;
 }
 
+/*
+
+Process the query when it comes in
+
+*/
 void Redis::process_query(std::vector<std::string> query_vector){
     std::string keyword = query_vector.front();
 
@@ -219,10 +226,11 @@ void Redis::print_dict(){
     std::cout << "}" << std::endl;
 }
 
-Redis::Redis(){
-    /*
-    
-    Initializes Redis Dict When Program Starts
+/*
 
-    */
+Initialize Redis map from persistent storage
+
+*/
+Redis::Redis(){
+    
 }

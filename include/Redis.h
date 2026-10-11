@@ -19,19 +19,18 @@ Redis values constants
 
 class Redis{
     public:
-        // getters & setters
+        // Helper functions for Redis operations
         std::string get_redis_value(std::string key, std::string field);
         void set_redis_value(std::string key, std::string field, std::string value);
-
-        // helper functions for redis dict functions
         void delete_user_or_field(std::string key, std::string field);
-
+        // Used to parse the query into preformatted vector
         static std::vector<std::string> parse_query(std::string query);
+        // Process the query when it comes in
         void process_query(std::vector<std::string> query_vector);
-
+        // Meant for debugging, prints full map
         void print_dict();
-
-        Redis(); // Initializes dict from storage
+        // Initialize Redis map from persistent storage
+        Redis();
     private:
         std::unordered_map<std::string,std::unordered_map<std::string,std::string>> redis_dict;
 };
