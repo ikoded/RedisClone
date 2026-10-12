@@ -42,3 +42,28 @@ Sec-Fetch-Dest: empty
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
 Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: en-US,en;q=0.9
+
+Receiving data fix
+
+std::string received_string;
+char buffer[1024];
+
+while (true) {
+    ssize_t n = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+
+    if (n > 0) {
+        received_string.append(buffer, n);
+        continue;
+    }
+
+    if (n == 0) {
+        break; // client disconnected
+    }
+
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break; // no more data right now
+    }
+
+    std::cerr << "recv error\n";
+    return "";
+}

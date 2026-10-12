@@ -104,7 +104,7 @@ void Connection::start_tcp_domain(){
             
         }
 
-        // loop through clients recieved (skipping server pollfd at index 0)
+        // loop through clients received (skipping server pollfd at index 0)
         for(size_t i = 1; i < watchlist.size();){
             // check if client in loop actually sent something, if not continue and increase i
             if(watchlist[i].revents & POLLIN){
@@ -115,7 +115,7 @@ void Connection::start_tcp_domain(){
                 if(query == ""){
                     std::cerr << "Client " << watchlist[i].fd << " disconnected or errored." << std::endl;
                 }else{
-                    std::cout << "Recieved data from " << watchlist[i].fd << "." << std::endl;
+                    std::cout << "Received data from " << watchlist[i].fd << "." << std::endl;
                     // parse query
                     std::vector<std::string> parsed = Redis::parse_query(query);
                     // if parsed query returns with size 0, query was wrong
@@ -155,7 +155,7 @@ std::string Connection::read_client_data(int client_fd){
     ssize_t received_bytes;
     // keep receiving bytes in case not all sent right away
     while((received_bytes = recv(client_fd,buffer,(sizeof(buffer)-1),0)) > 0){
-        // recieving and handling null terminator automatically
+        // receiving and handling null terminator automatically
         received_string.append(buffer,received_bytes);
     }
 
