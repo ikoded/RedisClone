@@ -69,6 +69,16 @@ void Redis::delete_user_or_field(std::string key, std::string field = ""){
 
 /*
 
+NPOS check helper
+
+*/
+auto nposcheck = [](int x){
+    if(x==std::string_view::npos) return 1;
+    return 0;
+};
+
+/*
+
 Used to parse the query into preformatted vector
 
 Supported format is as follows:
@@ -83,36 +93,33 @@ Delete:
 DELETE user:{id} (optional){field}
 
 */
-std::vector<std::string> Redis::parse_query(std::string query){
-    std::vector<std::string> words_parsed;
+std::vector<std::string_view> Redis::parse_query(std::string_view query){
+    std::vector<std::string_view> words_parsed;
+    // keeping each line in a vector for now in case of logging or other features
     size_t pos;
-    auto nposcheck = [](int x){
-        if(x==std::string::npos) return 1;
-        return 0;
-    };
+    
 
-    // pop the trailing newline (for js page this needs removed)
-    query.pop_back();
+    // first line is `GET /user/100/name HTTP/1.1` which is all I care about for now
+    pos = query.find('\n');
+    if(nposcheck(pos) == 1) return {};
+    std::string_view request = query.substr(0,pos);
 
-    // Grab set, get, delete
-    if(query.substr(0,3)=="GET"){
-        words_parsed.push_back("GET");
-        query.erase(0,4); // erase space too
-    }else if(query.substr(0,3)=="SET"){
+    // get method requested
+    pos = request.find(" ");
+    if(nposcheck(pos) == 1) return {};
+    std::string_view method = request.substr(0,pos);
+
+    // get words_parsed for process_query function
+    if(method=="GET"){
+        if((words_parsed = process_get_request(request)).empty()) return {};
+        
+    }else if(method=="SET"){
         words_parsed.push_back("SET");
-        query.erase(0,4);
-    }else if(query.substr(0,6)=="DELETE"){
+    }else if(method=="DELETE"){
         words_parsed.push_back("DELETE");
-        query.erase(0,7);
     }else{
         return words_parsed; // return empty to tell caller it failed
     }
-
-    pos = query.find(":");
-    if(nposcheck(pos)==1) return std::vector<std::string>{}; // makes sure pos did not fail
-    // grab user portion, future proof way in case change
-    words_parsed.push_back(query.substr(0,pos));
-    query.erase(0,pos+1);
 
     if(words_parsed.front()=="DELETE" && query.find(" ") == std::string::npos){
         words_parsed.push_back(query);
@@ -120,7 +127,7 @@ std::vector<std::string> Redis::parse_query(std::string query){
         return words_parsed;
     }else{
         pos = query.find(" ");
-        if(nposcheck(pos)==1) return std::vector<std::string>{};
+        if(nposcheck(pos)==1) return std::vector<std::string_view>{};
         // grab id
         words_parsed.push_back(query.substr(0,pos));
         query.erase(0,pos+1);
@@ -133,7 +140,7 @@ std::vector<std::string> Redis::parse_query(std::string query){
     // DELETE still has either nothing OR field left (can delete user or field of user)
     if(words_parsed.front() == "SET"){
         pos = query.find(" ");
-        if(nposcheck(pos)==1) return std::vector<std::string>{}; // fails because a value must be set
+        if(nposcheck(pos)==1) return std::vector<std::string_view>{}; // fails because a value must be set
         // grab the field and value to set to
         std::string field = query.substr(0,pos);
         std::string value = query.substr(pos+1,query.length());
@@ -149,6 +156,44 @@ std::vector<std::string> Redis::parse_query(std::string query){
     }
 
     return words_parsed;
+}
+
+/*
+
+Parse query helpers
+
+*/
+
+/*
+
+GET request helper
+
+Example:
+    GET /user/100/name HTTP/1.1
+
+*/
+std::vector<std::string_view> process_get_request(std::string_view get_request){
+    ssize_t pos;
+    ssize_t prev_pos = 4;
+    std::vector<std::string_view> get_parsed;
+    // reserve memory up front to save
+    get_parsed.reserve(4);
+
+    get_parsed.push_back("GET");
+    // check from pos 4 because index 4 should be first '/', so skip that
+    pos = get_request.find("/",prev_pos);
+    prev_pos = pos;
+    if(nposcheck(pos)==1) return {}; // makes sure pos did not fail
+    // grab user first
+    get_parsed.push_back(get_request.substr(prev_pos,pos));
+}
+
+std::vector<std::string_view> process_set_request(std::string_view set_request){
+    
+}
+
+std::vector<std::string_view> process_delete_request(std::string_view delete_request){
+    
 }
 
 /*

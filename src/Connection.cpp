@@ -116,8 +116,9 @@ void Connection::start_tcp_domain(){
                     std::cerr << "Client " << watchlist[i].fd << " disconnected or errored." << std::endl;
                 }else{
                     std::cout << "Received data from " << watchlist[i].fd << "." << std::endl;
+                    std::cout << "Data is:\n";
                     // parse query
-                    std::vector<std::string> parsed = Redis::parse_query(query);
+                    std::vector<std::string_view> parsed = Redis::parse_query(query);
                     // if parsed query returns with size 0, query was wrong
                     if(parsed.size()==0){
                         std::cerr << "Query " << query << " incorrect from client " << watchlist[i].fd << "." << std::endl;
@@ -154,10 +155,9 @@ std::string Connection::read_client_data(int client_fd){
 
     ssize_t received_bytes;
     // keep receiving bytes in case not all sent right away
-    while((received_bytes = recv(client_fd,buffer,(sizeof(buffer)-1),0)) > 0){
-        // receiving and handling null terminator automatically
-        received_string.append(buffer,received_bytes);
-    }
+    received_bytes = recv(client_fd,buffer,(sizeof(buffer)-1),0);
+    // receiving and handling null terminator automatically
+    received_string.append(buffer,received_bytes);
 
     if(received_bytes==-1){
         std::cerr << "Error receiving bytes from client " << client_fd << "." << std::endl;
