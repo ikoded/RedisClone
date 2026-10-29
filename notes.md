@@ -33,15 +33,22 @@ For this to work, that means I need an unordered map of a nested unordered map s
 EXAMPLE OF WHAT BROWSER SENDS
 
 Browser sent: 
-GET HTTP/1.1
-Host: 127.0.0.1:8080
-Connection: keep-alive
-Sec-Fetch-Site: same-origin
-Sec-Fetch-Mode: no-cors
-Sec-Fetch-Dest: empty
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36
-Accept-Encoding: gzip, deflate, br, zstd
-Accept-Language: en-US,en;q=0.9
+1: GET /user/100/name HTTP/1.1
+2: Host: localhost:8080
+3: Connection: keep-alive
+4: Cache-Control: max-age=0
+5: sec-ch-ua: "Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"
+6: sec-ch-ua-mobile: ?0
+7: sec-ch-ua-platform: "Windows"
+8: Upgrade-Insecure-Requests: 1
+9: User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36
+10: Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+11: Sec-Fetch-Site: none
+12: Sec-Fetch-Mode: navigate
+13: Sec-Fetch-User: ?1
+14: Sec-Fetch-Dest: document
+15: Accept-Encoding: gzip, deflate, br, zstd
+16: Accept-Language: en-US,en;q=0.9
 
 Receiving data fix
 
