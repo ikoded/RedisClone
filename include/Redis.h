@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <sstream>
 
 /*
 
@@ -21,8 +20,8 @@ Redis values constants
 class Redis{
     public:
         // Helper functions for Redis operations
-        std::string get_redis_value(std::string key, std::string field);
-        void set_redis_value(std::string key, std::string field, std::string value);
+        std::string_view get_redis_value(std::string_view key, std::string_view field);
+        void set_redis_value(std::string_view key, std::string_view field, std::string_view value);
         void delete_user_or_field(std::string key, std::string field);
         // Used to parse the query into preformatted vector
         static std::vector<std::string_view> parse_query(std::string_view query);
@@ -33,5 +32,5 @@ class Redis{
         // Initialize Redis map from persistent storage
         Redis();
     private:
-        std::unordered_map<std::string,std::unordered_map<std::string,std::string>> redis_dict;
+        std::unordered_map<std::string_view,std::unordered_map<std::string_view,std::string_view>> redis_dict;
 };
