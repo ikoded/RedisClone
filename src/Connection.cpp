@@ -117,7 +117,7 @@ void Connection::start_tcp_domain(){
                 }else{
                     std::cout << "Received data from " << watchlist[i].fd << "." << std::endl;
                     // parse query
-                    std::vector<std::string> parsed = Redis::parse_query(query);
+                    std::vector<std::string_view> parsed = Redis::parse_query(query);
                     // if parsed query returns with size 0, query was wrong
                     if(parsed.size()==0){
                         std::cerr << "Query " << query << " incorrect from client " << watchlist[i].fd << "." << std::endl;
@@ -125,7 +125,7 @@ void Connection::start_tcp_domain(){
                         // process query request
                         redis.process_query(parsed);
                         // debug
-                        redis.print_dict();
+                        //redis.print_dict();
                     }
                 }
                 // closes and erases for now, accepts single query then removes client
@@ -154,10 +154,9 @@ std::string Connection::read_client_data(int client_fd){
 
     ssize_t received_bytes;
     // keep receiving bytes in case not all sent right away
-    while((received_bytes = recv(client_fd,buffer,(sizeof(buffer)-1),0)) > 0){
-        // receiving and handling null terminator automatically
-        received_string.append(buffer,received_bytes);
-    }
+    received_bytes = recv(client_fd,buffer,(sizeof(buffer)-1),0);
+    // receiving and handling null terminator automatically
+    received_string.append(buffer,received_bytes);
 
     if(received_bytes==-1){
         std::cerr << "Error receiving bytes from client " << client_fd << "." << std::endl;

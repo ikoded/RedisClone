@@ -20,13 +20,13 @@ Redis values constants
 class Redis{
     public:
         // Helper functions for Redis operations
-        std::string get_redis_value(std::string key, std::string field);
-        void set_redis_value(std::string key, std::string field, std::string value);
+        std::string_view get_redis_value(std::string_view key, std::string_view field);
+        void set_redis_value(std::string_view key, std::string_view field, std::string_view value);
         void delete_user_or_field(std::string key, std::string field);
         // Used to parse the query into preformatted vector
-        static std::vector<std::string> parse_query(std::string query);
+        static std::vector<std::string_view> parse_query(std::string_view query);
         // Process the query when it comes in
-        void process_query(std::vector<std::string> query_vector);
+        void process_query(std::vector<std::string_view> query_vector);
         // Meant for debugging, prints full map
         void print_dict();
         // Initialize Redis map from persistent storage

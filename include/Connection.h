@@ -14,7 +14,7 @@ class Connection {
         // Start TCP Domain, poll, accept, and receive
         void start_tcp_domain();
         // Reading client data that comes in
-        std::string read_client_data(int clinet_fd);
+        std::string read_client_data(int client_fd);
         // Helper function for non blocking fd
         bool socket_non_blocking_helper(int fd);
         // Connection Initializer
