@@ -6,9 +6,9 @@ Helper functions for Redis operations
 
 */
 std::string_view Redis::get_redis_value(std::string_view key, std::string_view field){
-    auto entry = redis_dict.find(key);
+    auto entry = redis_dict.find(std::string(key));
     if(entry != redis_dict.end()){
-        auto field_entry = entry->second.find(field);
+        auto field_entry = entry->second.find(std::string(field));
         if(field_entry != entry->second.end()){
             return field_entry->second;
         }else{
@@ -38,11 +38,11 @@ std::string_view Redis::get_redis_value(std::string_view key, std::string_view f
 }
 
 void Redis::set_redis_value(std::string_view key, std::string_view field, std::string_view value){
-    std::unordered_map<std::string_view,std::string_view> dict = redis_dict[key];
+    std::unordered_map<std::string,std::string> dict = redis_dict[std::string(key)];
     
     // set dict in  to field/value
-    dict[field] = value;
-    redis_dict[key] = dict;
+    dict[std::string(field)] = value;
+    redis_dict[std::string(key)] = dict;
 
     std::cout << "Set " << key << " field " << field << " to " << value << std::endl;
 }
@@ -79,80 +79,17 @@ auto nposcheck = [](int x){
 
 /*
 
-Used to parse the query into preformatted vector
-
-Supported format is as follows:
-
-Get:
-GET user:{id} {field}
-
-Set:
-SET user:{id} {field} {value}
-
-Delete:
-DELETE user:{id} (optional){field}
+Content length helper
 
 */
-std::vector<std::string_view> Redis::parse_query(std::string_view query){
-    std::vector<std::string_view> words_parsed;
-    // keeping each line in a vector for now in case of logging or other features
-    size_t pos;
+
+int get_content_length(std::string_view content_length_line){
+    int line_length = content_length_line.length();
     
-
-    // first line is `GET /user/100/name HTTP/1.1` which is all I care about for now
-    pos = query.find('\n');
-    if(nposcheck(pos) == 1) return {};
-    std::string_view request = query.substr(0,pos);
-
-    // get method requested
-    pos = request.find(" ");
-    if(nposcheck(pos) == 1) return {};
-    std::string_view method = request.substr(0,pos);
-
-    // get words_parsed for process_query function
-    if(method=="GET"){
-        if((words_parsed = process_get_request(request)).empty()) return {};
-    }else if(method=="SET"){
-        if((words_parsed = process_set_request(request)).empty()) return {};
-    }else if(method=="DELETE"){
-        words_parsed.push_back("DELETE");
-    }
-    return words_parsed;
-
-    // if(words_parsed.front()=="DELETE" && query.find(" ") == std::string::npos){
-    //     words_parsed.push_back(query);
-    //     // leave because delete supports deleting user just by id (GET will in future)
-    //     return words_parsed;
-    // }else{
-    //     pos = query.find(" ");
-    //     if(nposcheck(pos)==1) return std::vector<std::string_view>{};
-    //     // grab id
-    //     words_parsed.push_back(query.substr(0,pos));
-    //     query.erase(0,pos+1);
-    // }
-    
-
-    // // for now just use strings
-    // // GET still has field left (in future may have nothing to support grab all user fields)
-    // // SET still has field/value left
-    // // DELETE still has either nothing OR field left (can delete user or field of user)
-    // if(words_parsed.front() == "SET"){
-    //     pos = query.find(" ");
-    //     if(nposcheck(pos)==1) return std::vector<std::string_view>{}; // fails because a value must be set
-    //     // grab the field and value to set to
-    //     std::string field = query.substr(0,pos);
-    //     std::string value = query.substr(pos+1,query.length());
-    //     words_parsed.push_back(field);
-    //     words_parsed.push_back(value);
-    // }else if(words_parsed.front() == "DELETE"){
-    //     if(query.length()>0){ // field is left
-    //         words_parsed.push_back(query);
-    //     }
-    // }else{
-    //     // end of query for GET
-    //     words_parsed.push_back(query);
-    // }
-
+    std::string content_length_string(content_length_line);
+    // content length 17 because "content-length: "
+    int content_length = std::stoi(content_length_string.substr(16));
+    return content_length;
 }
 
 /*
@@ -178,21 +115,20 @@ std::vector<std::string_view> process_get_request(std::string_view get_request){
 
     get_parsed.push_back("GET");
     // check from pos 4 because index 4 should be first '/', so skip that
-    pos = get_request.find("/",prev_pos);
-    if(nposcheck(pos)==1) return {}; // makes sure pos did not fail
+    pos = get_request.find("/",prev_pos); if(nposcheck(pos)==1) return {}; // makes sure pos did not fail
     // grab user first
     // subtracting to get n characters to take
     get_parsed.push_back(get_request.substr(prev_pos,pos - prev_pos));
     // add 1 to go to 1 char past the second slash
     prev_pos = pos + 1;
     // check for user id
-    pos = get_request.find("/",prev_pos);
-    if(nposcheck(pos)==1) return {};
+    pos = get_request.find("/",prev_pos); if(nposcheck(pos)==1) return {};
+
     get_parsed.push_back(get_request.substr(prev_pos,pos - prev_pos));
     prev_pos = pos + 1;
     // check for field
-    pos = get_request.find(" ",prev_pos);
-    if(nposcheck(pos)==1) return {};
+    pos = get_request.find(" ",prev_pos); if(nposcheck(pos)==1) return {};
+
     get_parsed.push_back(get_request.substr(prev_pos,pos - prev_pos));
 
     return get_parsed;
@@ -200,18 +136,93 @@ std::vector<std::string_view> process_get_request(std::string_view get_request){
 
 /*
 
-SET request helper
+PUT request helper
 
 Example:
-    SET /user/100/name/Joe HTTP/1.1
+    PUT /user/100/name HTTP/1.1
+    body example: {"value":"Max"}
 
 */
-std::vector<std::string_view> process_set_request(std::string_view set_request){
+std::vector<std::string_view> process_put_request(std::string_view set_request, std::string_view value){
+    ssize_t pos;
+    ssize_t prev_pos = 5;
+    std::vector<std::string_view> get_parsed;
+    get_parsed.reserve(5);
+
+    get_parsed.push_back("PUT");
+    pos = set_request.find("/",prev_pos); if(nposcheck(pos) == 1) return {};
+
+    // get the first word
+    get_parsed.push_back(set_request.substr(prev_pos, pos-prev_pos));
+    prev_pos = pos + 1;
+
+    pos = set_request.find("/",prev_pos); if(nposcheck(pos) == 1) return {};
+    get_parsed.push_back(set_request.substr(prev_pos, pos - prev_pos));
+    prev_pos = pos + 1;
+
+    pos = set_request.find(" ", prev_pos); if(nposcheck(pos) == 1) return {};
+    get_parsed.push_back(set_request.substr(prev_pos, pos-prev_pos));
+
+    get_parsed.push_back(value);
     
+    return get_parsed;
 }
 
 std::vector<std::string_view> process_delete_request(std::string_view delete_request){
+    return {};
+}
+
+/*
+
+Used to parse the query into preformatted vector
+
+Supported format is as follows:
+
+Get:
+GET user:{id} {field}
+
+Put:
+PUT user:{id} {field} {value}
+
+Delete:
+DELETE user:{id} (optional){field}
+
+*/
+std::vector<std::string_view> Redis::parse_query(std::string_view query){
+    std::vector<std::string_view> words_parsed;
+    // keeping each line in a vector for now in case of logging or other features
+    size_t pos;
     
+
+    // first line is `GET /user/100/name HTTP/1.1` which is all I care about for now
+    pos = query.find('\n'); if(nposcheck(pos) == 1) return {};
+    std::string_view request = query.substr(0,pos);
+
+    // get method requested
+    pos = request.find(" "); if(nposcheck(pos) == 1) return {};
+    std::string_view method = request.substr(0,pos);
+
+    // get words_parsed for process_query function
+    if(method=="GET"){
+        if((words_parsed = process_get_request(request)).empty()) return {};
+    }else if(method=="PUT"){
+        // need to get content length and value
+        pos = query.find("content-length: "); if(nposcheck(pos) == 1) return {};
+        int length_line_pos = pos;
+        pos = query.find('\n',pos); if(nposcheck(pos) == 1) return {};
+        std::string_view content_length_line = query.substr(length_line_pos, pos);
+        int content_length = get_content_length(content_length_line);
+
+        pos = query.find("{\"value\":\"");
+        if (nposcheck(pos) == 1) return {};
+        // + 10 to get past and -12 to get rid of `{"value":""}` chars
+        std::string_view value = query.substr(pos+10,content_length-12);
+        
+        if((words_parsed = process_put_request(request,value)).empty()) return {};
+    }else if(method=="DELETE"){
+        words_parsed.push_back("DELETE");
+    }
+    return words_parsed;
 }
 
 /*
@@ -231,37 +242,23 @@ void Redis::process_query(std::vector<std::string_view> query_vector){
         std::string key(query_vector.back()); key += ":"; key += id; query_vector.pop_back();
 
         // get keys unordered map
-        std::string_view return_value = get_redis_value(key,field);
+        std::string_view return_value = get_redis_value(std::string_view(key),field);
         if(return_value!=""){
             std::cout << "Found: " << key << "(" << field << ") = " << return_value << std::endl; 
         }
 
-        }else if(keyword=="SET"){
-            // need the key, field, and value (backwards)
-            std::string_view value = query_vector.back(); query_vector.pop_back();
+    }else if(keyword=="PUT"){
+        // need the key, field, and value (backwards)
+        std::string_view value = query_vector.back(); query_vector.pop_back();
 
-            std::string_view field = query_vector.back(); query_vector.pop_back();
+        std::string_view field = query_vector.back(); query_vector.pop_back();
 
-            std::string_view id = query_vector.back(); query_vector.pop_back();
-            std::string key(query_vector.back()); key += ":"; key += id; query_vector.pop_back();
+        std::string_view id = query_vector.back(); query_vector.pop_back();
+        std::string key(query_vector.back()); key += ":"; key += id; query_vector.pop_back();
 
-            // set key/field/value
-            set_redis_value(key,field,value);
-        }
-    //else if(keyword=="DELETE"){
-    //     if(query_vector.size()==3){ // delete the user
-    //         std::string id = query_vector.back(); query_vector.pop_back();
-    //         std::string key = query_vector.back() + ":" + id;
-    //         // delete just the user
-    //         delete_user_or_field(key);
-    //     }else if(query_vector.size()==4){ // delete users field
-    //         std::string field = query_vector.back(); query_vector.pop_back();
-    //         std::string id = query_vector.back(); query_vector.pop_back();
-    //         std::string key = query_vector.back() + ":" + id;
-    //         // delete users field
-    //         delete_user_or_field(key,field);
-    //     }
-    // }
+        // set key/field/value
+        set_redis_value(std::string_view(key),field,value);
+    }
 }
 
 /*

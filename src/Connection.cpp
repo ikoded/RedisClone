@@ -116,7 +116,6 @@ void Connection::start_tcp_domain(){
                     std::cerr << "Client " << watchlist[i].fd << " disconnected or errored." << std::endl;
                 }else{
                     std::cout << "Received data from " << watchlist[i].fd << "." << std::endl;
-                    std::cout << "Data is:\n";
                     // parse query
                     std::vector<std::string_view> parsed = Redis::parse_query(query);
                     // if parsed query returns with size 0, query was wrong
@@ -126,7 +125,7 @@ void Connection::start_tcp_domain(){
                         // process query request
                         redis.process_query(parsed);
                         // debug
-                        redis.print_dict();
+                        //redis.print_dict();
                     }
                 }
                 // closes and erases for now, accepts single query then removes client

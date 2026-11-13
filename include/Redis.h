@@ -32,5 +32,5 @@ class Redis{
         // Initialize Redis map from persistent storage
         Redis();
     private:
-        std::unordered_map<std::string_view,std::unordered_map<std::string_view,std::string_view>> redis_dict;
+        std::unordered_map<std::string,std::unordered_map<std::string,std::string>> redis_dict;
 };

@@ -4,9 +4,9 @@ A clone of Redis that acts as a server that sends back data based on what the cl
 
 # Support
 
-Will only support GET, SET & DELETE for now.
+Will only support GET, PUT & DELETE for now.
 
-It will also only support `SET user:{id} {field} {string_value}` to start. This is useful so any user can have any field with value as the operator wants.
+It will also only support `PUT user:{id} {field} {string_value}` to start. This is useful so any user can have any field with value as the operator wants.
 
 # Testing
 
