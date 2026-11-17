@@ -125,7 +125,7 @@ void Connection::start_tcp_domain(){
                         // process query request
                         redis.process_query(parsed);
                         // debug
-                        //redis.print_dict();
+                        redis.print_dict();
                     }
                 }
                 // closes and erases for now, accepts single query then removes client

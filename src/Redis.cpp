@@ -47,16 +47,16 @@ void Redis::set_redis_value(std::string_view key, std::string_view field, std::s
     std::cout << "Set " << key << " field " << field << " to " << value << std::endl;
 }
 
-void Redis::delete_user_or_field(std::string key, std::string field = ""){
-    auto entry = redis_dict.find(key);
+void Redis::delete_user_or_field(std::string_view key, std::string_view field = ""){
+    auto entry = redis_dict.find(std::string(key));
     if(entry != redis_dict.end()){
         if(field==""){
-            redis_dict.erase(key);
+            redis_dict.erase(std::string(key));
             std::cout << "Deleted key " << key << std::endl;
         }else{
-            auto field_entry = entry->second.find(field);
+            auto field_entry = entry->second.find(std::string(field));
             if(field_entry != entry->second.end()){
-                redis_dict[key].erase(field);
+                redis_dict[std::string(key)].erase(std::string(field));
                 std::cout << "Deleted field (" << field << ") from key (" << key << ")" << std::endl;
             }else{
                 std::cerr << "Could not find key (" << key << ") field (" << field << ")" << std::endl;
@@ -168,8 +168,44 @@ std::vector<std::string_view> process_put_request(std::string_view set_request, 
     return get_parsed;
 }
 
+/*
+
+DELETE request helper
+
+Example:
+    DELETE /user/100/name HTTP/1.1
+    or
+    DELETE /user/100/ HTTP/1.1
+
+*/
 std::vector<std::string_view> process_delete_request(std::string_view delete_request){
-    return {};
+    ssize_t pos;
+    ssize_t prev_pos = 8;
+    std::vector<std::string_view> delete_parsed;
+    delete_parsed.reserve(4); // could be 4 or 3 long based on if deleting just user or specific user field
+
+    delete_parsed.push_back("DELETE");
+    pos = delete_request.find("/", prev_pos); if(nposcheck(pos)==1) return {};
+
+    // grab first field
+    delete_parsed.push_back(delete_request.substr(prev_pos,pos-prev_pos));
+    prev_pos = pos + 1;
+
+    // grab id
+    pos = delete_request.find("/",prev_pos); if(nposcheck(pos) == 1) return {};
+    
+    delete_parsed.push_back(delete_request.substr(prev_pos, pos-prev_pos));
+    prev_pos = pos + 1;
+
+    // leave if only 
+    if(delete_request == "HTTP/1.1") return delete_parsed;
+
+    // grab the last field
+    pos = delete_request.find(" ", prev_pos); if(nposcheck(pos) == 1) return {};
+
+    delete_parsed.push_back(delete_request.substr(prev_pos, pos-prev_pos));
+
+    return delete_parsed;
 }
 
 /*
@@ -220,7 +256,7 @@ std::vector<std::string_view> Redis::parse_query(std::string_view query){
         
         if((words_parsed = process_put_request(request,value)).empty()) return {};
     }else if(method=="DELETE"){
-        words_parsed.push_back("DELETE");
+        if((words_parsed = process_delete_request(request)).empty()) return {};
     }
     return words_parsed;
 }
@@ -258,6 +294,17 @@ void Redis::process_query(std::vector<std::string_view> query_vector){
 
         // set key/field/value
         set_redis_value(std::string_view(key),field,value);
+    }else if(keyword == "DELETE"){
+        std::string_view field;
+        // need the key and optionally the field
+        if(query_vector.size() == 4){
+            field = query_vector.back(); query_vector.pop_back();
+        }
+
+        std::string_view id = query_vector.back(); query_vector.pop_back();
+        std::string key(query_vector.back()); key += ":"; key += id; query_vector.pop_back();
+
+        delete_user_or_field(key,field);
     }
 }
 
